@@ -19,7 +19,7 @@ def fetch():
     return Response()
 
 @app.get("/html")
-def fetch(start: int|None=None, end: int|None=None):
+def html(start: int|None=None, end: int|None=None):
     return HTMLResponse(make_copy(persistent.runs[slice(start, end)]))
 
 if __name__ == "__main__":
