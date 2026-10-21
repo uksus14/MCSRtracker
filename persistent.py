@@ -1,9 +1,12 @@
-from collections.abc import Generator
 from dataclasses import dataclass, asdict, fields
+from collections.abc import Generator
 from datetime import datetime
 from typing import Any, Self
 from pathlib import Path
+import requests
 import json
+
+USER = "pinchyish"
 
 def project(cls: type, data: dict[str, Any]) -> dict[str, Any]:
     return {field.name: data[field.name] for field in fields(cls)}
@@ -34,6 +37,10 @@ class RunResponse:
     seedType: str
     bastionType: str
     @classmethod
+    def create(cls, **kwargs) -> Self:
+        kwargs['timelines'] = [SplitResponse(**split) for split in kwargs['timelines']]
+        return cls(**kwargs)
+    @classmethod
     def format_enum(cls, enum: str) -> str:
         return enum.replace('_', ' ').title()
     @classmethod
@@ -52,31 +59,42 @@ class RunResponse:
             yield SplitResponse.find_format(self.timelines, split_name)
         yield final_time
     def tohtml(self) -> str:
-        return '<tr style="background-color:#f4cccc;"><td>' + '</td><td>'.join(self.flatten()) + '</td></tr>'
+        return f'<tr style="background-color:#{"f4cccc" if self.forfeited else "d9ead3"};"><td>' + '</td><td>'.join(self.flatten()) + '</td><td></td></tr>'
+    def dumps(self) -> str: return json.dumps(asdict(self), indent=4)
 
 @dataclass
 class Persistent:
     caches: list[RunResponse]
     discarded: list[int]
+    @property
+    def runs(self) -> list[RunResponse]:
+        return sorted([run for run in self.caches if run.id not in self.discarded], key=lambda run:run.date)
     def find(self, id: int) -> RunResponse|None:
-        for run in persistent.caches:
-            if run.id == id: return run
-        return None
+        return next((run for run in self.caches if run.id == id), None)
     def _add_and_dump[T](self, l: list[T], el: T) -> T:
         l.append(el)
         self.dump()
         return el
-    def cache(self, run: RunResponse) -> RunResponse: return self._add_and_dump(self.caches, run)
+    def cache(self, run: RunResponse) -> RunResponse:
+        if SplitResponse.find_format(run.timelines, 'story.enter_the_nether') == 'x':
+            self.discard(run.id)
+        return self._add_and_dump(self.caches, run)
     def discard(self, id: int) -> int: return self._add_and_dump(self.discarded, id)
     @classmethod
     def load(cls) -> Self: return cls.loads(FILE.read_text())
     @classmethod
     def loads(cls, data: dict[str, list[Any]]|str) -> Self:
         if isinstance(data, str): data: dict[str, list[Any]] = json.loads(data)
-        return cls(caches=[RunResponse(**run) for run in data['caches']], discarded=data['discarded'])
+        return cls(caches=[RunResponse.create(**run) for run in data['caches']], discarded=data['discarded'])
     def dump(self): return FILE.write_text(self.dumps())
     def dumps(self) -> str: return json.dumps(asdict(self), indent=4)
-
+    @staticmethod
+    def get(id: int) -> RunResponse:
+        data = requests.get(f"https://mcsrranked.com/api/matches/{id}").json()['data']
+        return persistent.cache(RunResponse.project(data))
+    def fetch(self):
+        data = requests.get(f"https://mcsrranked.com/api/users/{USER}/matches?count=70").json()['data']
+        return [Persistent.get(run['id']) for run in data[::-1] if not persistent.find(run['id'])]
 
 persistent: Persistent = Persistent(caches=[], discarded=[])
 default_content = persistent.dumps().encode()

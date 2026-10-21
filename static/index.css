@@ -1,0 +1,72 @@
+*{
+    box-sizing: border-box;
+}
+body{
+    background-color: #18181b;
+}
+h1{
+    color: #d0d0d1;
+    text-align: center;
+}
+main{
+    padding: 0 3vw 5vh 5vw;
+    display: flex;
+    width: 100%;
+}
+#left{
+    width: 5px;
+}
+#left > div{
+    width: 2px;
+    margin: 2px 0;
+    background-color: #d0d0d1;
+}
+#left > .selected{
+    background-color: #60a5fa;
+    width: 5px;
+}
+#content td{
+    padding: 4px 10px;
+}
+#sidebar{
+    flex: 1;
+    position: sticky;
+    height: 80vh;
+    display: flex;
+    flex-direction: column;
+}
+#actions{
+    padding: 40px 10%;
+    width: 100%;
+    display: flex;
+    gap: 30px;
+    justify-content: center;
+}
+#sidebar button{
+    font-size: xx-large;
+    background-color: #60a5fa;
+    cursor: pointer;
+    color: white;
+    border-radius: 5px;
+    border: none;
+    height: fit-content;
+    padding: 5px 10px;
+    transition: background-color .05s linear;
+}
+#sidebar button:active{
+    background-color: #1d7ff8;
+}
+#info{
+    flex: 1;
+    overflow-y: scroll;
+    padding: 30px;
+}
+#info > div{
+    background-color: #55ee55;
+    border-radius: 5px;
+    padding: 5px 10px;
+    margin: 10px 0;
+}
+#info > .bad{
+    background-color: #ff5555;
+}

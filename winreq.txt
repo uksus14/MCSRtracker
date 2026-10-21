@@ -1,2 +1,4 @@
 requests
 pywin32
+fastapi
+uvicorn
