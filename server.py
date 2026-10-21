@@ -1,4 +1,6 @@
 #!/home/knight/personal-packages/friends/MCSR/env/bin/python
+import os
+
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi import FastAPI, Response
@@ -24,6 +26,9 @@ def html(start: int|None=None, end: int|None=None):
 
 if __name__ == "__main__":
     import uvicorn
-    service_result = subprocess.run(['my-service', 'ensure', 'MCSR'], capture_output=True, text=True, check=True)
-    uvicorn.run('server:app', host='0.0.0.0', port=int(service_result.stdout.strip()))
+    port = 9999
+    if os.name == 'unix':
+        service_result = subprocess.run(['my-service', 'ensure', 'MCSR'], capture_output=True, text=True, check=True)
+        port = int(service_result.stdout.strip())
+    uvicorn.run('server:app', host='0.0.0.0', port=port)
     # uvicorn.run('server:app', host='0.0.0.0', port=9999)
