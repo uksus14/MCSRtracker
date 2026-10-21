@@ -66,6 +66,7 @@ class RunResponse:
 class Persistent:
     caches: list[RunResponse]
     discarded: list[int]
+    endFights: dict[int, str]
     @property
     def runs(self) -> list[RunResponse]:
         return sorted([run for run in self.caches if run.id not in self.discarded], key=lambda run:run.date)
@@ -83,24 +84,27 @@ class Persistent:
     @classmethod
     def load(cls) -> Self: return cls.loads(FILE.read_text())
     @classmethod
-    def loads(cls, data: dict[str, list[Any]]|str) -> Self:
+    def loads(cls, data: dict[str, list[Any]|dict[int, str]]|str) -> Self:
         if isinstance(data, str): data: dict[str, list[Any]] = json.loads(data)
-        return cls(caches=[RunResponse.create(**run) for run in data['caches']], discarded=data['discarded'])
+        return cls(caches=[RunResponse.create(**run) for run in data['caches']], discarded=data['discarded'], endFights=data['endFights'])
     def dump(self): return FILE.write_text(self.dumps())
     def dumps(self) -> str: return json.dumps(asdict(self), indent=4)
     @staticmethod
     def get(id: int) -> RunResponse:
         data = requests.get(f"https://mcsrranked.com/api/matches/{id}").json()['data']
         return persistent.cache(RunResponse.project(data))
-    def fetch(self):
-        data = requests.get(f"https://mcsrranked.com/api/users/{USER}/matches?count=70").json()['data']
+    def fetch(self, count: int=20):
+        data = requests.get(f"https://mcsrranked.com/api/users/{USER}/matches?count={count}").json()['data']
         return [Persistent.get(run['id']) for run in data[::-1] if not persistent.find(run['id'])]
+    def setEnd(self, run: int, fight: str):
+        pass
 
-persistent: Persistent = Persistent(caches=[], discarded=[])
+persistent: Persistent = Persistent(caches=[], discarded=[], endFights={})
 default_content = persistent.dumps().encode()
 FILE = Path(__file__).parent / 'persistent.json'
 if not FILE.exists() or len(FILE.read_bytes()) <= len(default_content):
     with open(FILE, 'wb') as f:
         f.write(default_content)
+    persistent.fetch(70)
 
 persistent = Persistent.load()

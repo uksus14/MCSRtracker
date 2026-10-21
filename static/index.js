@@ -28,15 +28,11 @@ function display(html){
 async function fetchNew(){
     const response = await fetch('/fetch');
     if(!response.ok)throw Error("Couldn't fetch from mcsrranked.com!");
-    const oldLength = content.getElementsByTagName('tr').length;
-    const newHTML = await getHtml();
-    const newLength = (newHTML.match(/<tr>/) || []).length;
-    if(oldLength < newLength){
-        display(newHTML);
+    const newRuns = await response.json()
+    if(newRuns.length){
+        display(await getHtml());
         addMessage("Update fetched!");
-    }else{
-        addMessage("No new runs found!", false);
-    }
+    }else addMessage("No new runs found!", false);
 }
 
 getHtml().then(display);
@@ -54,10 +50,10 @@ copyButton.addEventListener('click', async (ev) => {
     [...left.children].forEach((indicator, index) => {
         if(indicator.classList.contains('selected')){
             if(!first)first = index;
-            last = index;
-        }console.log(first, last);
-    });console.log(first, last);
-    await navigator.clipboard.write([new ClipboardItem({["text/html"]: getHtml(first, last+1)})]);
+            last = index+1;
+        }
+    });
+    await navigator.clipboard.write([new ClipboardItem({["text/html"]: getHtml(first, last)})]);
 })
 
 
@@ -88,8 +84,8 @@ function selectRows(fromRow, toRow) {
 content.addEventListener("mousedown", event => {
     if (event.button !== 0) return;
     const row = getRow(event);
-    if (!row) return;
     event.preventDefault();
+    if (!row) return;
     isDragging = true;
     startRow = row;
     selectRows(startRow, row);
@@ -105,3 +101,8 @@ document.addEventListener("mouseup", event => {
     startRow = null;
     isDragging = false;
 });
+
+
+addMessage("Press fetch to get new runs from mcsrranked api")
+addMessage("Select a few rows and press copy to put them in your clipboard")
+addMessage("When rows are copied you can just do ctrl+v in the google spreadsheet to paste")
